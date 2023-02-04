@@ -1,10 +1,7 @@
 #!/bin/bash
 
 # copy local-setup.php to public
-if [ ! -e public/local-setup.php ]
-then
-    cp setup/local-setup.php public/local-setup.php
-fi
+cp setup/local-setup.php public/local-setup.php
 
 # copy local wp-config.php to public
 if [ ! -e public/wp-config.php ]
