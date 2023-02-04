@@ -123,6 +123,8 @@ function db_import()
 
   $result = shell_exec($ssh_file);
 
+  file_put_contents('../db-import.log', $result);
+
   return strstr($result, 'Success:') !== false ? 'true' : '';
 }
 
@@ -143,21 +145,6 @@ function exec_wp_cli_search_replace($from, $to)
 
   $from = escapeshellarg($from);
   $to = escapeshellarg($to);
-
-  // putenv('MYSQL_HOME=/home/lozza/.config/Local/run/tXzlTdzhL/conf/mysql');
-  // putenv('PHPRC=/home/lozza/.config/Local/run/tXzlTdzhL/conf/php');
-  // putenv('WP_CLI_CONFIG_PATH=/opt/Local/resources/extraResources/bin/wp-cli/config.yaml');
-  // putenv('WP_CLI_DISABLE_AUTO_CHECK_UPDATE=1');
-  // $paths = [
-  //   '/home/lozza/.config/Local/lightning-services/mysql-5.7.28+4/bin/linux/bin',
-  //   '/home/lozza/.config/Local/lightning-services/php-7.4.1+14/bin/linux/bin',
-  //   '/opt/Local/resources/extraResources/bin/wp-cli/posix',
-  //   '/opt/Local/resources/extraResources/bin/composer/posix',
-  //   getenv('PATH')
-  // ];
-  // putenv('PATH=' . implode(':', $paths));
-  // putenv('MAGICK_CODER_MODULE_PATH=/home/lozza/.config/Local/lightning-services/php-7.4.1+14/bin/linux/ImageMagick/modules-Q16/coders');
-  // putenv('LD_LIBRARY_PATH=/home/lozza/.config/Local/lightning-services/php-7.4.1+14/bin/linux/shared-libs');
 
   return shell_exec($ssh_file . PHP_EOL . 'wp search-replace ' . $from . ' ' . $to . ' --all-tables 2>&1');
 }
@@ -340,6 +327,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SERVER['HTTP_X_REQUESTED_WI
 
     $result = exec_wp_cli_search_replace($from, $to);
 
+    file_put_contents('../wp-search-replace.log', $result);
+
     $status = strstr($result, 'Success:') !== false;
 
     json([
@@ -357,6 +346,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SERVER['HTTP_X_REQUESTED_WI
 
     $siteId = explode('/', stristr($socketPath, 'run'))[1];
     $local_config_path = stristr($socketPath, 'Local', true) . 'Local';
+
+    //
+    if (file_exists($local_config_path.'/ssh-entry/'.$siteId.'.sh')) {
+      copy($local_config_path.'/ssh-entry/'.$siteId.'.sh', '../site-shell.sh');
+    }
+
+    //
+    $ssh_entry_path = stristr($socketPath, 'Local', true) . 'Local/ssh-entry';
+    $ssh_file = $ssh_entry_path . '/' . $siteId . '.sh';
+    $ssh_file = file_get_contents($ssh_file);
+    // remove bits not needed
+    $ssh_file = str_replace('echo -n -e "\033]0;afc-wp Shell\007"', '', $ssh_file);
+    $ssh_file = str_replace('exec $SHELL', '', $ssh_file);
+    $ssh_file = str_replace('echo "Launching shell: $SHELL ..."', '', $ssh_file);
+    file_put_contents('../site-export-database.sh', $ssh_file.' wp db export --add-drop-table --allow-root ../sql/local.sql');
+    file_put_contents('../site-import-database.sh', $ssh_file.' wp db import ../sql/local.sql');
 
     $sites_json = file_get_contents($local_config_path . '/sites.json');
     $sites = json_decode($sites_json, true);
@@ -625,7 +630,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SERVER['HTTP_X_REQUESTED_WI
             <div class="card-body">
               <p class="card-text">
                 When you're up and running, remove the <code>local-setup.php</code> and <code>wp-cli.phar</code> files from the public folder or click the button below.<br>
-                <small class="text-muted">Dont worry, if you get in a kerfuffle you can always run <code>bash local-setup.sh</code> to bring them back in.</small>
+                <small class="text-muted">Dont worry, if you get in a kerfuffle you can always run <code>bash setup.sh</code> to bring them back in.</small>
               </p>
             </div>
             <div class="card-footer text-muted">
@@ -877,7 +882,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SERVER['HTTP_X_REQUESTED_WI
               <div class="media mb-3 pb-3 border-bottom">
                 <div class="media-body">
                   <h5 class="mt-0">File (exists): <code>{{ state.local.local_config_path }}/ssh-entry/{{ state.local.siteId }}.sh</code></h5>
-                  <div>This file must exist to be able to obtain the correct settings for <code>wp-cli.phar</code> to work.</div>
+                  <div>
+                    - This file must exist to be able to obtain the correct settings for <code>wp-cli.phar</code> to work.<br>
+                    - <span>File <code>../site-shell.sh</code> was created. Use <code>bash site-shell.sh</code> to apply a shell with the Locals environment variables, which will allow you to use <code>wp</code> CLI commands.</span>
+                  </div>
                 </div>
                 <div :class="[state.checks.ssh_entry_exists ? 'status-good' : 'status-bad']"></div>
               </div>
@@ -941,12 +949,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SERVER['HTTP_X_REQUESTED_WI
           <div id="accordion">
             <div class="card border-0">
               <div class="card-header pointer" id="headingOne" data-toggle="collapse" data-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
-                1. Run <code>bash local-setup.sh</code> again
+                1. Run <code>bash setup.sh</code> again
               </div>
               <div id="collapseOne" class="collapse show border-bottom" aria-labelledby="headingOne" data-parent="#accordion">
                 <div class="card-body">
                   <p>
-                    If you are accessing this file its likely you have already run <code>bash local-setup.sh</code>, but the folder may not have been writable by the user when you did,
+                    If you are accessing this file its likely you have already run <code>bash setup.sh</code>, but the folder may not have been writable by the user when you did,
                     which you would have then got errors which you perhaps did not notice and fix.
                   </p>
                   <p>
@@ -963,7 +971,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SERVER['HTTP_X_REQUESTED_WI
                     </li>
                   </ul>
                   After doing so,<br>
-                  <p>Run <code>bash local-setup.sh</code> again then refresh this page, if the problem persists try something below.
+                  <p>Run <code>bash setup.sh</code> again then refresh this page, if the problem persists try something below.
                 </div>
               </div>
             </div>
@@ -1331,12 +1339,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SERVER['HTTP_X_REQUESTED_WI
             <div id="accordion">
               <div class="card border-0">
                 <div class="card-header pointer" id="headingOne" data-toggle="collapse" data-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
-                  1. Run <code>bash local-setup.sh</code> again
+                  1. Run <code>bash setup.sh</code> again
                 </div>
                 <div id="collapseOne" class="collapse show border-bottom" aria-labelledby="headingOne" data-parent="#accordion">
                   <div class="card-body">
                     <p>
-                      If you are accessing this file its likely you have already run <code>bash local-setup.sh</code>, but the folder may not have been writable by the user when you did,
+                      If you are accessing this file its likely you have already run <code>bash setup.sh</code>, but the folder may not have been writable by the user when you did,
                       which you would have then got errors which you perhaps did not notice and fix.
                     </p>
                     <p>
@@ -1353,7 +1361,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SERVER['HTTP_X_REQUESTED_WI
                       </li>
                     </ul>
                     After doing so,<br>
-                    <p>Run <code>bash local-setup.sh</code> again then refresh this page, if the problem persists try something below.
+                    <p>Run <code>bash setup.sh</code> again then refresh this page, if the problem persists try something below.
                   </div>
                 </div>
               </div>
@@ -1466,7 +1474,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SERVER['HTTP_X_REQUESTED_WI
         <div class="card-body">
           <p class="card-text">
             When your all good and done, you should remove the <code>local-setup.php</code> and <code>wp-cli.phar</code> files.<br>
-            <small>Dont worry, if you get in a kerfuffle again you can run <code>bash local-setup.sh</code> to bring them back in.</small>
+            <small>Dont worry, if you get in a kerfuffle again you can run <code>bash setup.sh</code> to bring them back in.</small>
           </p>
         </div>
         <div class="card-footer text-muted">

@@ -1,5 +1,7 @@
-public/local-setup.php
-public/wp-cli.phar
-
-public/wp-config.php
-public/wp-config-sample.php
+public
+site-shell.sh
+site-export-database.sh
+site-import-database.sh
+wordpress.tgz
+wp-search-replace.log
+db-import.log

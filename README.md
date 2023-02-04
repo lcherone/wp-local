@@ -1,4 +1,6 @@
-# 
+# Local Setup
+
+<!--
 
 This repo contains the files which are in your Local path, for example if it is `/home/user/Local Sites/site-name/` the files inside `/home/user/Local Sites/site-name/app` is this repo.
 
@@ -68,3 +70,5 @@ And likewise, the link for sql would be:
 Then if all went well, 2 new folders/links would appear inside `/home/user/Local\ Sites/site-name/app`, upon clicking they would show the files in the folder on the desktop.
 
 If this is unclear you might just want to replace the folders.
+
+-->
