@@ -1,4 +1,5 @@
 public
+sql
 site-shell.sh
 site-export-database.sh
 site-import-database.sh
