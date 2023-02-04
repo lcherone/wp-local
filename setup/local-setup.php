@@ -360,8 +360,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SERVER['HTTP_X_REQUESTED_WI
     $ssh_file = str_replace('echo -n -e "\033]0;afc-wp Shell\007"', '', $ssh_file);
     $ssh_file = str_replace('exec $SHELL', '', $ssh_file);
     $ssh_file = str_replace('echo "Launching shell: $SHELL ..."', '', $ssh_file);
-    file_put_contents('../site-export-database.sh', $ssh_file.' wp db export --add-drop-table --allow-root ../sql/local.sql');
-    file_put_contents('../site-import-database.sh', $ssh_file.' wp db import ../sql/local.sql');
+    file_put_contents('../export-database.sh', $ssh_file.' wp db export --add-drop-table --allow-root ../sql/local.sql');
+    file_put_contents('../import-database.sh', $ssh_file.' wp db import ../sql/local.sql');
 
     $sites_json = file_get_contents($local_config_path . '/sites.json');
     $sites = json_decode($sites_json, true);
@@ -851,7 +851,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SERVER['HTTP_X_REQUESTED_WI
             <div class="media mb-3 pb-3 border-bottom">
               <div class="media-body">
                 <h5 class="mt-0">File (exists): <code>../sql/local.sql</code></h5>
-                <div>The ../sql/local.sql file must exist.</div>
+                <div>The ../sql/local.sql file must exist. (stopping the instance will export the database to ../sql/local.sql)</div>
               </div>
               <div :class="[state.checks.db_import_exists ? 'status-good' : 'status-bad']"></div>
             </div>

@@ -1,8 +1,8 @@
 public
 sql
 site-shell.sh
-site-export-database.sh
-site-import-database.sh
+export-database.sh
+import-database.sh
 wordpress.tgz
 wp-search-replace.log
 db-import.log
